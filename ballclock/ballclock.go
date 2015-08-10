@@ -6,8 +6,17 @@ import (
 	"strings"
 )
 
+const (
+	MinBallCnt      = 27
+	MaxBallCnt      = 127
+	MinTraySize     = 4
+	FiveMinTraySize = 11
+	HourTraySize    = 11
+	MaxTraySize     = MinTraySize + FiveMinTraySize + HourTraySize + MaxBallCnt
+)
+
 type Trays struct {
-	ClockTray      [153]int8
+	ClockTray      [MaxTraySize]int8
 	MinTrayCnt     int64
 	FiveMinTrayCnt int64
 	HourTrayCnt    int64
@@ -19,17 +28,17 @@ type Trays struct {
 
 func New(ball_cnt int, iterations int) *Trays {
 
-	if ball_cnt < 27 || ball_cnt > 127 {
+	if ball_cnt < MinBallCnt || ball_cnt > MaxBallCnt {
 		fmt.Printf("Number of ball should be in the range 27 to 127\n")
 		os.Exit(1)
 	}
 
 	var trays Trays
 	trays.BallCnt = int8(ball_cnt)
-	trays.FiveMinTrayCnt = 4
-	trays.HourTrayCnt = 15
-	trays.MainTraySCnt = 26
-	trays.MainTrayECnt = 26
+	trays.FiveMinTrayCnt = MinTraySize
+	trays.HourTrayCnt = MinTraySize + FiveMinTraySize
+	trays.MainTraySCnt = MinTraySize + FiveMinTraySize + HourTraySize
+	trays.MainTrayECnt = trays.MainTraySCnt
 	trays.Iterations = iterations
 
 	for i := int8(1); i <= trays.BallCnt; i++ {
@@ -47,7 +56,7 @@ func (trays *Trays) ShowSituation() {
 	case trays.MainTraySCnt <= trays.MainTrayECnt:
 		str += fmt.Sprintf("\"Main\":%v}", trays.ClockTray[trays.MainTraySCnt:trays.MainTrayECnt])
 	case trays.MainTraySCnt > trays.MainTrayECnt:
-		main_tray := append(trays.ClockTray[trays.MainTraySCnt:153], trays.ClockTray[26:trays.MainTrayECnt]...)
+		main_tray := append(trays.ClockTray[trays.MainTraySCnt:MaxTraySize], trays.ClockTray[26:trays.MainTrayECnt]...)
 		str += fmt.Sprintf("\"Main\":%v}", main_tray)
 	}
 
@@ -57,7 +66,7 @@ func (trays *Trays) ShowSituation() {
 
 func (trays *Trays) Reset(start, end int8) {
 	for i := start; i >= end; i-- {
-		if trays.MainTrayECnt >= 153 {
+		if trays.MainTrayECnt >= MaxTraySize {
 			trays.MainTrayECnt = 26
 		}
 		trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
@@ -69,7 +78,7 @@ func (trays *Trays) IsEnd() bool {
 	cnt := trays.MainTraySCnt
 
 	for i := int8(1); i <= trays.BallCnt; i++ {
-		if cnt >= 153 {
+		if cnt >= MaxTraySize {
 			cnt = 26
 		}
 		if trays.ClockTray[cnt] != i {
@@ -89,7 +98,7 @@ func (trays *Trays) Run() int {
 			trays.ShowSituation()
 		}
 
-		if trays.MainTraySCnt >= 153 {
+		if trays.MainTraySCnt >= MaxTraySize {
 			trays.MainTraySCnt = 26
 		}
 		ball = trays.ClockTray[trays.MainTraySCnt]
@@ -117,7 +126,7 @@ func (trays *Trays) Run() int {
 			continue
 		}
 		trays.Reset(25, 15)
-		if trays.MainTrayECnt >= 153 {
+		if trays.MainTrayECnt >= MaxTraySize {
 			trays.MainTrayECnt = 26
 		}
 		trays.ClockTray[trays.MainTrayECnt] = ball

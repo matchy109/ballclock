@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/matchy109/ballclock/ballclock"
+	"github.com/matchy109/go-ballclock/ballclock"
 	//"github.com/davecheney/profile"
 	"os"
 	"strconv"
