@@ -1,128 +1,143 @@
-package main
+package ballclock
 
 import (
 	"fmt"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
 )
 
-const (
-	MinCnt          = 27
-	MaxCnt          = 127
-	MinTraySize     = 4
-	FiveMinTraySize = 11
-	HourTraySize    = 11
-)
-
-type Tray []int8
 type Trays struct {
-	MinTray      Tray
-	FiveMinTray  Tray
-	HourTray     Tray
-	MainTray     Tray
-	OriginalTray Tray
+	ClockTray      [153]int8
+	MinTrayCnt     int64
+	FiveMinTrayCnt int64
+	HourTrayCnt    int64
+	MainTraySCnt   int64
+	MainTrayECnt   int64
+	BallCnt        int8
+	Iterations     int
 }
 
-func main() {
+func New(ball_cnt int, iterations int) *Trays {
 
-	var ball_cnt, iterations int
-
-	switch len(os.Args) {
-	case 2:
-		ball_cnt, _ = strconv.Atoi(os.Args[1])
-		iterations = -1
-	case 3:
-		ball_cnt, _ = strconv.Atoi(os.Args[1])
-		iterations, _ = strconv.Atoi(os.Args[2])
-	default:
-		fmt.Printf("Number of Arg should be 2 or 3\n")
-		os.Exit(0)
+	if ball_cnt < 27 || ball_cnt > 127 {
+		fmt.Printf("Number of ball should be in the range 27 to 127\n")
+		os.Exit(1)
 	}
 
-	if ball_cnt >= MinCnt && ball_cnt <= MaxCnt {
-		days := RanBallClock(int8(ball_cnt), iterations)
-		fmt.Printf("%v balls cycle after %v days.\n", ball_cnt, days)
-	} else {
-		fmt.Printf("Number of ball should be in the range %d to %d\n", MinCnt, MaxCnt)
+	var trays Trays
+	trays.BallCnt = int8(ball_cnt)
+	trays.FiveMinTrayCnt = 4
+	trays.HourTrayCnt = 15
+	trays.MainTraySCnt = 26
+	trays.MainTrayECnt = 26
+	trays.Iterations = iterations
+
+	for i := int8(1); i <= trays.BallCnt; i++ {
+		trays.ClockTray[trays.MainTrayECnt] = i
+		trays.MainTrayECnt++
 	}
+	return &trays
 }
 
-func RanBallClock(ball_cnt int8, iterations int) int {
-	var trays *Trays = InitializeTray(ball_cnt)
+func (trays *Trays) ShowSituation() {
+	str := fmt.Sprintf("{\"Min\":%v \"FiveMin\":%v \"Hour\":%v ",
+		trays.ClockTray[:trays.MinTrayCnt], trays.ClockTray[4:trays.FiveMinTrayCnt], trays.ClockTray[15:trays.HourTrayCnt])
+
+	switch {
+	case trays.MainTraySCnt <= trays.MainTrayECnt:
+		str += fmt.Sprintf("\"Main\":%v}", trays.ClockTray[trays.MainTraySCnt:trays.MainTrayECnt])
+	case trays.MainTraySCnt > trays.MainTrayECnt:
+		main_tray := append(trays.ClockTray[trays.MainTraySCnt:153], trays.ClockTray[26:trays.MainTrayECnt]...)
+		str += fmt.Sprintf("\"Main\":%v}", main_tray)
+	}
+
+	fmt.Printf("%s\n", strings.Replace(str, " ", ",", -1))
+	return
+}
+
+func (trays *Trays) RunBallClock() int {
+	var ball int8
+	var cnt int64
+	var diff bool
 
 	for minutes := 1; ; minutes++ {
-		ball := trays.MainTray[0]
-		trays.MainTray = append(trays.MainTray[:0], trays.MainTray[1:]...)
-		AddMinTray(&ball, trays)
 
-		if iterations == minutes {
-			fmt.Printf("{\"Min\":%s,\"FiveMin\":%s,\"Hour\":%s,\"Main\":%s}\n",
-				trays.MinTray.JoinComma(), trays.FiveMinTray.JoinComma(), trays.HourTray.JoinComma(), trays.MainTray.JoinComma())
+		if trays.Iterations == minutes-1 {
+			trays.ShowSituation()
 		}
-		if minutes%(60*24) != 0 {
+
+		if trays.MainTraySCnt >= 153 {
+			trays.MainTraySCnt = 26
+		}
+		ball = trays.ClockTray[trays.MainTraySCnt]
+		trays.MainTraySCnt++
+
+		if trays.MinTrayCnt < 4 {
+			trays.ClockTray[trays.MinTrayCnt] = ball
+			trays.MinTrayCnt++
 			continue
 		}
-		if reflect.DeepEqual(trays.OriginalTray, trays.MainTray[:]) {
+		for i := int8(3); i >= 0; i-- {
+			if trays.MainTrayECnt >= 153 {
+				trays.MainTrayECnt = 26
+			}
+			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
+			trays.MainTrayECnt++
+		}
+		trays.MinTrayCnt = 0
+
+		if trays.FiveMinTrayCnt < 15 {
+			trays.ClockTray[trays.FiveMinTrayCnt] = ball
+			trays.FiveMinTrayCnt++
+			continue
+		}
+		for i := int8(14); i >= 4; i-- {
+			if trays.MainTrayECnt >= 153 {
+				trays.MainTrayECnt = 26
+			}
+			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
+			trays.MainTrayECnt++
+		}
+		trays.FiveMinTrayCnt = 4
+
+		if trays.HourTrayCnt < 26 {
+			trays.ClockTray[trays.HourTrayCnt] = ball
+			trays.HourTrayCnt++
+			continue
+		}
+		for i := int8(25); i >= 15; i-- {
+			if trays.MainTrayECnt >= 153 {
+				trays.MainTrayECnt = 26
+			}
+			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
+			trays.MainTrayECnt++
+		}
+		if trays.MainTrayECnt >= 153 {
+			trays.MainTrayECnt = 26
+		}
+		trays.ClockTray[trays.MainTrayECnt] = ball
+		trays.MainTrayECnt++
+		trays.HourTrayCnt = 15
+
+		if minutes%1440 != 0 {
+			continue
+		}
+		//if trays.MainTrayECnt > trays.MainTraySCnt
+
+		diff = false
+		cnt = trays.MainTraySCnt
+		for i := int8(1); i <= trays.BallCnt; i++ {
+			if cnt >= 153 {
+				cnt = 26
+			}
+			if trays.ClockTray[cnt] != i {
+				diff = true
+				break
+			}
+			cnt++
+		}
+		if !diff {
 			return (minutes / 60 / 24)
 		}
-	}
-}
-
-func InitializeTray(ball_cnt int8) *Trays {
-	min_tray := make([]int8, 0, MinTraySize)
-	five_min_tray := make([]int8, 0, FiveMinTraySize)
-	hour_tray := make([]int8, 0, HourTraySize)
-	main_tray := make([]int8, ball_cnt)
-	original_tray := make([]int8, (cap(main_tray)))
-
-	for i := int8(1); i <= ball_cnt; i++ {
-		main_tray[i-1] = i
-	}
-	copy(original_tray, main_tray)
-	trays := &Trays{MinTray: min_tray, FiveMinTray: five_min_tray, HourTray: hour_tray, MainTray: main_tray, OriginalTray: original_tray}
-
-	return trays
-}
-
-func (tray *Tray) JoinComma() string {
-	str := fmt.Sprintf("%v", *tray)
-	return strings.Replace(str, " ", ",", -1)
-}
-
-func ReturnBall(tray *Tray, main_tray *Tray) {
-	for i := len(*tray) - 1; i >= 0; i-- {
-		*main_tray = append(*main_tray, (*tray)[i])
-	}
-}
-
-func AddMinTray(ball *int8, trays *Trays) {
-	if len(trays.MinTray) < MinTraySize {
-		trays.MinTray = append(trays.MinTray, *ball)
-	} else {
-		ReturnBall(&trays.MinTray, &trays.MainTray)
-		AddFiveMinTray(ball, trays)
-		trays.MinTray = trays.MinTray[:0]
-	}
-}
-
-func AddFiveMinTray(ball *int8, trays *Trays) {
-	if len(trays.FiveMinTray) < FiveMinTraySize {
-		trays.FiveMinTray = append(trays.FiveMinTray, *ball)
-	} else {
-		ReturnBall(&trays.FiveMinTray, &trays.MainTray)
-		AddHourTray(ball, trays)
-		trays.FiveMinTray = trays.FiveMinTray[:0]
-	}
-}
-
-func AddHourTray(ball *int8, trays *Trays) {
-	if len(trays.HourTray) < HourTraySize {
-		trays.HourTray = append(trays.HourTray, *ball)
-	} else {
-		ReturnBall(&trays.HourTray, &trays.MainTray)
-		trays.HourTray = trays.HourTray[:0]
-		trays.MainTray = append(trays.MainTray, *ball)
 	}
 }
