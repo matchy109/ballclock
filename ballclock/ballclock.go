@@ -55,10 +55,33 @@ func (trays *Trays) ShowSituation() {
 	return
 }
 
-func (trays *Trays) RunBallClock() int {
+func (trays *Trays) Reset(start, end int8) {
+	for i := start; i >= end; i-- {
+		if trays.MainTrayECnt >= 153 {
+			trays.MainTrayECnt = 26
+		}
+		trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
+		trays.MainTrayECnt++
+	}
+}
+
+func (trays *Trays) IsEnd() bool {
+	cnt := trays.MainTraySCnt
+
+	for i := int8(1); i <= trays.BallCnt; i++ {
+		if cnt >= 153 {
+			cnt = 26
+		}
+		if trays.ClockTray[cnt] != i {
+			return false
+		}
+		cnt++
+	}
+	return true
+}
+
+func (trays *Trays) Run() int {
 	var ball int8
-	var cnt int64
-	var diff bool
 
 	for minutes := 1; ; minutes++ {
 
@@ -77,13 +100,7 @@ func (trays *Trays) RunBallClock() int {
 			trays.MinTrayCnt++
 			continue
 		}
-		for i := int8(3); i >= 0; i-- {
-			if trays.MainTrayECnt >= 153 {
-				trays.MainTrayECnt = 26
-			}
-			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
-			trays.MainTrayECnt++
-		}
+		trays.Reset(3, 0)
 		trays.MinTrayCnt = 0
 
 		if trays.FiveMinTrayCnt < 15 {
@@ -91,13 +108,7 @@ func (trays *Trays) RunBallClock() int {
 			trays.FiveMinTrayCnt++
 			continue
 		}
-		for i := int8(14); i >= 4; i-- {
-			if trays.MainTrayECnt >= 153 {
-				trays.MainTrayECnt = 26
-			}
-			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
-			trays.MainTrayECnt++
-		}
+		trays.Reset(14, 4)
 		trays.FiveMinTrayCnt = 4
 
 		if trays.HourTrayCnt < 26 {
@@ -105,13 +116,7 @@ func (trays *Trays) RunBallClock() int {
 			trays.HourTrayCnt++
 			continue
 		}
-		for i := int8(25); i >= 15; i-- {
-			if trays.MainTrayECnt >= 153 {
-				trays.MainTrayECnt = 26
-			}
-			trays.ClockTray[trays.MainTrayECnt] = trays.ClockTray[i]
-			trays.MainTrayECnt++
-		}
+		trays.Reset(25, 15)
 		if trays.MainTrayECnt >= 153 {
 			trays.MainTrayECnt = 26
 		}
@@ -122,21 +127,8 @@ func (trays *Trays) RunBallClock() int {
 		if minutes%1440 != 0 {
 			continue
 		}
-		//if trays.MainTrayECnt > trays.MainTraySCnt
 
-		diff = false
-		cnt = trays.MainTraySCnt
-		for i := int8(1); i <= trays.BallCnt; i++ {
-			if cnt >= 153 {
-				cnt = 26
-			}
-			if trays.ClockTray[cnt] != i {
-				diff = true
-				break
-			}
-			cnt++
-		}
-		if !diff {
+		if trays.IsEnd() {
 			return (minutes / 60 / 24)
 		}
 	}
