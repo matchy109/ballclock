@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ballclock/ballclock"
 	"fmt"
+	"github.com/matchy109/ballclock/ballclock"
 	//"github.com/davecheney/profile"
 	"os"
 	"strconv"
